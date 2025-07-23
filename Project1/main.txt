@@ -1,0 +1,79 @@
+//abd-elrahman-abed-1193191
+// Decoder with enable module 
+	//when the enable is 0 the decoder output is 0 or 1 or don't care i considered the 0.
+	//when the enable is 1 the decoder acts as normal for the outputs.
+	
+module decoder2to4(a, b, en, y);	
+	
+	input a,b,en;
+	output reg [0:3] y;
+	
+    always @(a ,b,en)
+		begin
+			if(en==0)
+				begin
+				y[0:3]=4'b0000;
+				end
+			else
+				begin
+				 y[0] = (~a )& (~b);
+			     y[1] = (~a) & b;
+				 y[2] = a & (~b);
+				 y[3] = a & b;
+				end
+			end
+endmodule
+
+// Mux 2x1 with selection 
+module mux2to1(a, b, selection,  y);  
+	
+	input a, b, selection;
+	output y;
+	assign y = ((~selection & a)|(selection & b));
+		
+endmodule
+
+// The full circuit module
+module circuit(a, b, c, d, f1, f2);
+	
+    input a, b, c, d;
+    output f1, f2;
+    
+    wire [0:3] decoderout1;   
+    wire [0:3] decoderout2;   
+    wire I0;
+    wire I1;
+    
+    decoder2to4 d1(a, b, ~d, decoderout1);
+	
+    xor (I0,decoderout1[0],decoderout1[1]) ;
+    assign I1 = ~(decoderout1[2] | decoderout1[3]);
+    
+    decoder2to4 d2(~b, c, d, decoderout2);
+    
+    mux2to1 m1 (I0, I1, decoderout2[1], f1);
+	
+    assign f2 = ~(decoderout2[2] & decoderout2[3]);
+	
+endmodule
+// Test bench
+module tb_circuit;
+    reg a, b, c, d;
+    wire f1, f2;
+
+    circuit abd1(a, b, c, d, f1, f2);
+	initial begin 
+		a=1'b0;	
+		b=1'b0;
+		c=1'b0;
+		d=1'b0;
+		end
+   always  #20ns c= ~c;
+	 
+  always  #40ns b = ~b;
+  
+  always #80ns a= ~a;
+	  always #10ns d = ~d;
+
+
+endmodule

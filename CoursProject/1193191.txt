@@ -1,0 +1,127 @@
+//abdelrhman abed ~1193191~
+module TFF (clk,reset,t,q);	  //T-Flip Flops 
+	input clk,reset,t;
+	output reg q;
+	
+    always @(posedge clk or posedge reset)
+		begin
+        if (reset)
+            q <= 1'b0;										
+        else if (t)
+            q <= ~q;
+    end	    
+endmodule
+
+module Det (q,det);	 //DetectionLogic
+	
+	input [0:3]q;
+	output reg det;
+
+
+    always @(*)
+		begin
+        if (q[0] & ~q[1] & q[2] & q[3])
+            det = 1'b1;
+        else
+            det = 1'b0;
+    end
+
+endmodule
+
+module SDet(clk,reset,input1,det);   //SequenceDetector
+	
+	input clk,reset,input1;
+	output reg det;
+    wire t0, t1, t2, t3;
+    reg [0:3]q;
+
+    TFlipFlop tff0 (.clk(clk) , .reset(reset) , .t(t0) , .q(q[0]));
+
+    TFlipFlop tff1 (.clk(clk) , .reset(reset) , .t(t1) , .q(q[1]));
+
+    TFlipFlop tff2 (.clk(clk) , .reset(reset) , .t(t2) , .q(q[2]));
+
+    TFlipFlop tff3 (.clk(clk) , .reset(reset) , .t(t3) , .q(q[3]));
+
+    assign t0 = (q[0] ^ input1) & (~q[1]);
+    assign t1 = (q[1] ^ ~input1) & (~q[2]);
+    assign t2 = (q[2] ^ input1) & (~q[3]);
+    assign t3 = (q[3] ^ input1) & q[0];
+
+    Det u1 (.q(q), .det(det));
+
+endmodule
+
+module SDetBehavioral (clk, reset, input1, det);  //SequenceDetectorBehavioral
+	
+	input clk, reset, input1;
+	output reg det;
+	reg [0:3] q;
+
+	always @(posedge clk or posedge reset) begin
+		if (reset)
+			q <= 4'b0000;
+		else begin
+			q[0] <= q[0] ^ input1;
+			q[1] <= q[1] ^ ~input1;
+			q[2] <= q[2] ^ input1;
+			q[3] <= q[3] ^ input1;
+		end
+	end
+
+	always @(*) begin
+		if (q[0] & ~q[1] & q[2] & q[3])
+			det = 1'b1;
+		else
+			det = 1'b0;
+	end
+
+endmodule
+
+module SDet_TB;
+
+    
+    reg clk;
+    reg reset;
+    reg input1;
+
+    
+    wire detstructural;
+    wire detbehavioral;
+
+   
+    SDet structural (.clk(clk),.reset(reset),.input1(input1), .det(detstructural));
+
+    
+    SDetBehavioral behavioral (.clk(clk),.reset(reset),.input1(input1),.det(detbehavioral));
+
+    
+    always 
+        #10 clk = ~clk;
+   
+
+    
+    initial
+		begin
+       
+        clk = 0;
+        reset = 1;
+        input1 = 0;
+		
+        #10 reset = 0;
+
+        for (int i = 0; i < 16; i = i + 1) 
+			begin
+            input1 = i;	
+			if (detstructural == detbehavioral)
+				begin
+            #10;	 
+			end
+			#10;
+        end
+
+        #100 
+		$finish;
+    end
+
+endmodule
